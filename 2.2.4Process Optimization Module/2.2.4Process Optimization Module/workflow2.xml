@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workflow-app xmlns="uri:oozie:workflow:0.2" name="optimizing-workflow">
+	<start to="Sqoop_job_branch_modified"/>
+
+	<action name="Sqoop_job_branch_modified">
+		<sqoop xmlns="uri:oozie:sqoop-action:0.2">
+			<job-tracker>${jobTracker}</job-tracker>
+			<name-node>${nameNode}</name-node>
+			<prepare>
+				<delete path="${nameNode}/Credit_Card_System/branch"/>
+				<mkdir path="${nameNode}/Credit_Card_System/branch"/>
+			</prepare>
+			<configuration>
+				<property>
+					<name>mapred.job.queue.name</name>
+					<value>${queueName}</value>
+				</property>
+			</configuration>
+	<arg>job</arg>
+	<arg>--meta-connect</arg>
+	<arg>jdbc:hsqldb:hsql://localhost:16000/sqoop</arg>
+	<arg>--exec</arg>
+	<arg>branchLastModified</arg>
+	<archive>/user/oozie/share/lib/lib_20161025075203/sqoop/java-json.jar#java-json.jar</archive>
+		</sqoop>	
+		<ok to="Sqoop_job_creditcard_modified"/>
+		<error to="fail_BranchJob"/>
+	</action>
+	<kill name="fail_BranchJob">
+		<message> Workflow failed, branchImport Job did not work </message>
+	</kill>
+
+
+	<action name="Sqoop_job_creditcard_modified">
+		<sqoop xmlns="uri:oozie:sqoop-action:0.2">
+			<job-tracker>${jobTracker}</job-tracker>
+			<name-node>${nameNode}</name-node>
+			<prepare>
+				<delete path="${nameNode}/Credit_Card_System/creditcard"/>
+				<mkdir path="${nameNode}/Credit_Card_System/creditcard"/>
+			</prepare>
+			<configuration>
+				<property>
+					<name>mapred.job.queue.name</name>
+					<value>${queueName}</value>
+				</property>
+			</configuration>
+	<arg>job</arg>
+	<arg>--meta-connect</arg>
+	<arg>jdbc:hsqldb:hsql://localhost:16000/sqoop</arg>
+	<arg>--exec</arg>
+	<arg>creditcardLastModified</arg>
+	<archive>/user/oozie/share/lib/lib_20161025075203/sqoop/java-json.jar#java-json.jar</archive>
+		</sqoop>	
+		<ok to="Sqoop_job_timet_modified"/>
+		<error to="fail_CreditCardJob"/>
+	</action>
+	<kill name="fail_CreditCardJob">
+		<message> Workflow failed, creditcardImport Job did not work </message>
+	</kill>
+
+
+	<action name="Sqoop_job_timet_modified">
+		<sqoop xmlns="uri:oozie:sqoop-action:0.2">
+			<job-tracker>${jobTracker}</job-tracker>
+			<name-node>${nameNode}</name-node>
+			<prepare>
+				<delete path="${nameNode}/Credit_Card_System/transactionDate"/>
+				<mkdir path="${nameNode}/Credit_Card_System/transactionDate"/>
+			</prepare>
+			<configuration>
+				<property>
+					<name>mapred.job.queue.name</name>
+					<value>${queueName}</value>
+				</property>
+			</configuration>
+	<arg>job</arg>
+	<arg>--meta-connect</arg>
+	<arg>jdbc:hsqldb:hsql://localhost:16000/sqoop</arg>
+	<arg>--exec</arg>
+	<arg>tdLastModified</arg>
+	<archive>/user/oozie/share/lib/lib_20161025075203/sqoop/java-json.jar#java-json.jar</archive>
+		</sqoop>	
+		<ok to="Sqoop_job_customer_modified"/>
+		<error to="fail_TimetJob"/>
+	</action>
+	<kill name="fail_TimetJob">
+		<message> Workflow failed, tdImport Job did not work </message>
+	</kill>
+
+
+	<action name="Sqoop_job_customer_modified">
+		<sqoop xmlns="uri:oozie:sqoop-action:0.2">
+			<job-tracker>${jobTracker}</job-tracker>
+			<name-node>${nameNode}</name-node>
+			<prepare>
+				<delete path="${nameNode}/Credit_Card_System/customer"/>
+				<mkdir path="${nameNode}/Credit_Card_System/customer"/>
+			</prepare>
+			<configuration>
+				<property>
+					<name>mapred.job.queue.name</name>
+					<value>${queueName}</value>
+				</property>
+			</configuration>
+	<arg>job</arg>
+	<arg>--meta-connect</arg>
+	<arg>jdbc:hsqldb:hsql://localhost:16000/sqoop</arg>
+	<arg>--exec</arg>
+	<arg>customerLastModified</arg>
+	<archive>/user/oozie/share/lib/lib_20161025075203/sqoop/java-json.jar#java-json.jar</archive>
+		</sqoop>	
+		<ok to="Insert_into_branch"/>
+		<error to="fail_CustomerJob"/>
+	</action>
+	<kill name="fail_CustomerJob">
+		<message> Workflow failed, customerImport Job did not work </message>
+	</kill>
+
+
+	<action name = "Insert_into_branch">   
+	    <hive xmlns = "uri:oozie:hive-action:0.4">
+	        <job-tracker>${jobTracker}</job-tracker>
+	        <name-node>${nameNode}</name-node>
+	        <configuration>
+				<property>
+					<name>mapred.job.queue.name</name>
+					<value>${queueName}</value>
+				</property>
+			</configuration>
+	        <script>${nameNode}/user/maria_dev/FinalCaseFolderForFiles/branchInsert2.hql</script>   
+	    </hive> 
+	    <ok to = "Insert_into_credit_card" />
+	    <error to = "kill_insert_branch" />  
+	</action>
+    <kill name = "kill_insert_branch">
+        <message> Insert into branch table failed </message>
+    </kill>
+
+    <action name = "Insert_into_credit_card">   
+	    <hive xmlns = "uri:oozie:hive-action:0.4">
+	        <job-tracker>${jobTracker}</job-tracker>
+	        <name-node>${nameNode}</name-node>
+	        <configuration>
+				<property>
+					<name>mapred.job.queue.name</name>
+					<value>${queueName}</value>
+				</property>
+			</configuration>
+	        <script>${nameNode}/user/maria_dev/FinalCaseFolderForFiles/creditcardImport2.hql</script>   
+	    </hive> 
+	    <ok to = "Insert_into_timet" />
+	    <error to = "kill_insert_creditCard" />  
+	</action>
+    <kill name = "kill_insert_creditCard">
+        <message> Insert into credit card table failed </message>
+    </kill>
+
+    <action name = "Insert_into_timet">   
+	    <hive xmlns = "uri:oozie:hive-action:0.4">
+	        <job-tracker>${jobTracker}</job-tracker>
+	        <name-node>${nameNode}</name-node>
+	        <configuration>
+				<property>
+					<name>mapred.job.queue.name</name>
+					<value>${queueName}</value>
+				</property>
+			</configuration>
+	        <script>${nameNode}/user/maria_dev/FinalCaseFolderForFiles/timet2.hql</script>   
+	    </hive> 
+	    <ok to = "Insert_into_customer" />
+	    <error to = "kill_insert_time" />  
+	</action>
+    <kill name = "kill_insert_time">
+        <message> Insert into timet table failed </message>
+    </kill>
+
+    <action name = "Insert_into_customer">   
+	    <hive xmlns = "uri:oozie:hive-action:0.4">
+	        <job-tracker>${jobTracker}</job-tracker>
+	        <name-node>${nameNode}</name-node>
+	        <configuration>
+				<property>
+					<name>mapred.job.queue.name</name>
+					<value>${queueName}</value>
+				</property>
+			</configuration>
+	        <script>${nameNode}/user/maria_dev/FinalCaseFolderForFiles/customer2.hql</script>   
+	    </hive> 
+	    <ok to = "end"/>
+	    <error to = "kill_insert_customer" />  
+	</action>
+    <kill name = "kill_insert_customer">
+        <message> Insert into customer table failed </message>
+    </kill>
+
+<end name="end"/>
+</workflow-app>

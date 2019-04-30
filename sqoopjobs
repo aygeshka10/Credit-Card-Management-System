@@ -1,0 +1,131 @@
+1)
+sqoop job 
+--meta-connect jdbc:hsqldb:hsql://localhost:16000/sqoop 
+--create branchAppend
+-- import
+--connect jdbc:mysql://localhost/cdw_sapp
+--driver com.mysql.jdbc.Driver
+--query "select branch_code, branch_street, branch_city, branch_state, ifnull(branch_zip, 999999), 
+concat( '(', right(branch_phone,3), ')', mid(BRANCH_PHONE,4,3), '-', right(BRANCH_PHONE,4)), last_updated
+from cdw_sapp_branch WHERE \$CONDITIONS"
+--target-dir /Credit_Card_System/branch_append
+--fields-terminated-by '\t'
+-m1
+
+2)
+sqoop job 
+-meta-connect jdbc:hsqldb:hsql://localhost:16000/sqoop 
+--create branchLastModified
+-- import
+-m1
+--connect jdbc:mysql://localhost/cdw_sapp
+--driver com.mysql.jdbc.Driver
+--append
+--query "select branch_code, branch_street, branch_city, branch_state, ifnull(branch_zip, 999999), 
+concat( '(', right(branch_phone,3), ')', mid(BRANCH_PHONE,4,3), '-', right(BRANCH_PHONE,4)), last_updated
+from cdw_sapp_branch WHERE \$CONDITIONS"
+--incremental lastmodified
+--check-column last_updated
+--last-value '1990-01-01'
+--target-dir /Credit_Card_System/branch_append
+--fields-terminated-by '\t'
+
+3)
+sqoop job 
+--meta-connect jdbc:hsqldb:hsql://localhost:16000/sqoop 
+--create creditcardAppend
+-- import
+-m1
+--connect jdbc:mysql://localhost/cdw_sapp
+--driver com.mysql.jdbc.Driver
+--query "select transaction_id, date_format(concat(year,lpad(month, 2, 0), lpad(day, 2, 0)), '%Y%m%d') as ccdate , credit_card_no, cust_ssn, branch_code, transaction_type, transaction_value
+from cdw_sapp_creditcard  WHERE \$CONDITIONS"
+--target-dir /Credit_Card_System/creditcard
+--fields-terminated-by '\t'
+
+4)
+sqoop job 
+--meta-connect jdbc:hsqldb:hsql://localhost:16000/sqoop 
+--create creditcardLastModified
+-- import
+-m1
+--connect jdbc:mysql://localhost/cdw_sapp
+--driver com.mysql.jdbc.Driver
+--append
+--query "select transaction_id, date_format(concat(year,lpad(month, 2, 0), lpad(day, 2, 0)), '%Y%m%d') as ccdate , credit_card_no, cust_ssn, branch_code, transaction_type, transaction_value, last_updated
+from cdw_sapp_creditcard WHERE \$CONDITIONS"
+--incremental lastmodified
+--check-column last_updated
+--last-value '1990-01-01'
+--target-dir /Credit_Card_System/creditcard
+--fields-terminated-by '\t'
+
+5)
+sqoop job 
+--meta-connect jdbc:hsqldb:hsql://localhost:16000/sqoop 
+--create tdAppend
+-- import
+-m1
+--connect jdbc:mysql://localhost/cdw_sapp
+--driver com.mysql.jdbc.Driver
+--query "select date_format(concat(year,lpad(month, 2, 0),lpad(day, 2, 0)), '%Y%c%d') as timeid , day, month, 
+quarter(date_format(concat(year,lpad(month, 2, 0), lpad(day, 2, 0)), '%Y%m%d')), year
+from cdw_sapp_creditcard WHERE \$CONDITIONS"
+--target-dir /Credit_Card_System/transactionDate
+--fields-terminated-by '\t'
+
+6)
+sqoop job 
+--meta-connect jdbc:hsqldb:hsql://localhost:16000/sqoop 
+--create tdLastModified
+-- import
+-m1
+--connect jdbc:mysql://localhost/cdw_sapp
+--driver com.mysql.jdbc.Driver
+--append
+--query "select date_format(concat(year,lpad(month, 2, 0),lpad(day, 2, 0)), '%Y%c%d') as timeid , day, month, 
+quarter(date_format(concat(year,lpad(month, 2, 0), lpad(day, 2, 0)), '%Y%m%d')), year, last_updated
+from cdw_sapp_creditcard WHERE \$CONDITIONS"
+--incremental lastmodified
+--check-column last_updated
+--last-value '1990-01-01'
+--target-dir /Credit_Card_System/transactionDate
+--fields-terminated-by '\t'
+
+
+7)
+sqoop job 
+--meta-connect jdbc:hsqldb:hsql://localhost:16000/sqoop 
+--create customerAppend
+-- import
+-m1
+--connect jdbc:mysql://localhost/cdw_sapp
+--driver com.mysql.jdbc.Driver
+--query "select concat(ucase(left(first_name, 1)), lcase(substring(first_name,2))), lcase(middle_name), concat(ucase(left(last_name,1)), lcase(substring(last_name, 2))), ssn, credit_card_no, 
+		concat(STREET_NAME,' ', APT_NO), 
+		cust_city, cust_state, 
+        cust_country, cast(cust_zip as unsigned Int), concat( '(', right(cust_phone,3), ')', mid(cust_PHONE,4,3), '-', right(cust_PHONE,4)), cust_email, last_updated
+from cdw_sapp_customer WHERE \$CONDITIONS"
+--target-dir /Credit_Card_System/customer
+--fields-terminated-by '\t'
+
+8)
+sqoop job 
+--meta-connect jdbc:hsqldb:hsql://localhost:16000/sqoop 
+--create customerLastModified
+-- import
+-m1
+--connect jdbc:mysql://localhost/cdw_sapp
+--driver com.mysql.jdbc.Driver
+--append
+--query "select concat(ucase(left(first_name, 1)), lcase(substring(first_name,2))), lcase(middle_name), concat(ucase(left(last_name,1)), lcase(substring(last_name, 2))), ssn, credit_card_no, 
+		concat(STREET_NAME,' ', APT_NO), 
+		cust_city, cust_state, 
+        cust_country, cast(cust_zip as unsigned Int), concat( '(', right(cust_phone,3), ')', mid(cust_PHONE,4,3), '-', right(cust_PHONE,4)), cust_email, last_updated
+from cdw_sapp_customer WHERE \$CONDITIONS"
+--incremental lastmodified
+--check-column last_updated
+--last-value '1990-01-01'
+--target-dir /Credit_Card_System/customer
+--fields-terminated-by '\t'
+
